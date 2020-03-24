@@ -1,0 +1,92 @@
+import cv2
+import time
+
+camera = cv2.VideoCapture(0)
+width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+gray_pic = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+start = time.time()
+"""
+Some code omissions in the middle of XXXX
+"""
+ seconds = end - start
+ if seconds < 1.0 / fps:
+ time.sleep(1.0 / fps - seconds)
+gray_pic = cv2.GaussianBlur(gray_pic, (21, 21), 0)
+img_delta = cv2.absdiff(pre_frame, gray_pic)
+thresh = cv2.threshold(img_delta, 30, 255, cv2.THRESH_BINARY)[1]
+thresh = cv2.dilate(thresh, None, iterations=2)
+image, contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+if cv2.waitKey(1) & 0xFF == ord('q'):
+ break
+
+
+
+import cv2
+import time
+# Define the camera object whose parameter 0 represents the first camera
+camera = cv2.VideoCapture(0)
+# For testing, view video size
+width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+size = width,height
+# Print out the resolution
+print(repr(size))
+# Set the number of frames and the background
+fps = 5
+pre_frame = None
+ 
+while (1):
+ start = time.time()
+ # Read Video Stream
+ ret, frame = camera.read()
+ # Grayscale image
+ gray_pic = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+ 
+ if not ret:
+     Print ("Failed to turn on the camera")
+ break
+ end = time.time()
+ 
+ cv2.imshow("capture", frame)
+ 
+ # Motion detection part, see if it's 5FPS
+ seconds = end - start
+ if seconds < 1.0 / fps:
+     time.sleep(1.0 / fps - seconds)
+ gray_pic = cv2.resize(gray_pic, (480, 480))
+ # Fuzzy Processing Using Gauss Filter
+ gray_pic = cv2.GaussianBlur(gray_pic, (21, 21), 0)
+ 
+ # If there is no background image, use the current frame as the background image
+ if pre_frame is None:
+     pre_frame = gray_pic
+ else:
+ # absdiff outputs the absolute value of the difference between two graphs to another
+     img_delta = cv2.absdiff(pre_frame, gray_pic)
+ # Threshold function (the original image should be gray-scale image, the threshold of classification of pixel values, when the pixel value is higher than (sometimes less than) the threshold value should be given a new pixel value, threshold method)
+ thresh = cv2.threshold(img_delta, 30, 255, cv2.THRESH_BINARY)[1]
+ # Corrosion and Expansion
+ thresh = cv2.dilate(thresh, None, iterations=2)
+ # FindContours Detection of Object Contours (Image Searching for Contours, Contour Retrieval Mode, Contour Approximation Method)
+ image, contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+ for c in contours:
+  # Setting Sensitivity
+  # ContourArea Calculates Contour Area
+  if cv2.contourArea(c) < 1000:
+      continue
+  else:
+      print ("There are personnel activities!!! ")
+  # Save the image
+  TI = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+  cv2.imwrite("C:/Users/user/Pictures/faces" + "JC" +TI+ '.jpg', frame)
+  break
+ pre_frame = gray_pic
+ 
+ if cv2.waitKey(1) & 0xFF == ord('q'):
+     break
+ 
+# release () release camera
+camera.release()
+# destroyAllWindows () Closes all image windows
+cv2.destroyAllWindows()
