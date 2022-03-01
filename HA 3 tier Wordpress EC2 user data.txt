@@ -1,45 +1,50 @@
 #!/bin/bash -xe
-
-ALBDNSNAME=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/ALBDNSNAME --query Parameters[0].Value)
+#Save ALB DNS to SSM Parameter Store and fetch it from that.
+ALBDNSNAME=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_ALB --query Parameters[0].Value)
 ALBDNSNAME=`echo $ALBDNSNAME | sed -e 's/^"//' -e 's/"$//'`
 
-
-EFSFSID=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/EFSFSID --query Parameters[0].Value)
+#Save EFS FileSystem ID to SSM Parameter Store and fetch it from that.
+EFSFSID=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_EFS_FS_ID --query Parameters[0].Value)
 EFSFSID=`echo $EFSFSID | sed -e 's/^"//' -e 's/"$//'`
 
-
-DBPassword=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/DBPassword --with-decryption --query Parameters[0].Value)
-DBPassword=`echo $DBPassword | sed -e 's/^"//' -e 's/"$//'`
-
-DBRootPassword=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/DBRootPassword --with-decryption --query Parameters[0].Value)
-DBRootPassword=`echo $DBRootPassword | sed -e 's/^"//' -e 's/"$//'`
-
-DBUser=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/DBUser --query Parameters[0].Value)
-DBUser=`echo $DBUser | sed -e 's/^"//' -e 's/"$//'`
-
-DBName=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/DBName --query Parameters[0].Value)
-DBName=`echo $DBName | sed -e 's/^"//' -e 's/"$//'`
-
-DBEndpoint=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/DBEndpoint --query Parameters[0].Value)
+#Save RDS DB endpoint URL to SSM Parameter Store and fetch it from that.
+DBEndpoint=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DB_Endpoint_URL --query Parameters[0].Value)
 DBEndpoint=`echo $DBEndpoint | sed -e 's/^"//' -e 's/"$//'`
 
+#Save RDS Initial database name to SSM Parameter Store and fetch it from that.
+DBName=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DBName --query Parameters[0].Value)
+DBName=`echo $DBName | sed -e 's/^"//' -e 's/"$//'`
+
+#Save RDS DB user name to SSM Parameter Store and fetch it from that.
+DBUser=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DBUser --query Parameters[0].Value)
+DBUser=`echo $DBUser | sed -e 's/^"//' -e 's/"$//'`
+
+#Save RDS password to SSM Parameter Store and fetch it from that.
+DBPassword=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DBPassword --with-decryption --query Parameters[0].Value)
+DBPassword=`echo $DBPassword | sed -e 's/^"//' -e 's/"$//'`
+
+
+#install updates
 yum -y update
 yum -y upgrade
 
+#Install mariadb, httpd, wget, efs-utils, lamp, epel
 yum install -y mariadb-server httpd wget amazon-efs-utils
 amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
 amazon-linux-extras install epel -y
 yum install stress -y
 
+#enable and start the web server
 systemctl enable httpd
-systemctl start httpd
+systemctl start httpd    
 
+#configure the EFS file system to mount as /var/www/html/wp-content/
 mkdir -p /var/www/html/wp-content
 chown -R ec2-user:apache /var/www/
 echo -e "$EFSFSID:/ /var/www/html/wp-content efs _netdev,tls,iam 0 0" >> /etc/fstab
 mount -a -t efs defaults
 
-
+#download and extract Wordpress
 wget http://wordpress.org/latest.tar.gz -P /var/www/html
 cd /var/www/html
 tar -zxvf latest.tar.gz
@@ -47,25 +52,28 @@ cp -rvf wordpress/* .
 rm -R wordpress
 rm latest.tar.gz
 
+#Configure the wordpress wp-config.php file. Give the database endpoint URL, DBname, username, password from the environment variable.
 sudo cp ./wp-config-sample.php ./wp-config.php
 sed -i "s/'database_name_here'/'$DBName'/g" wp-config.php
 sed -i "s/'username_here'/'$DBUser'/g" wp-config.php
 sed -i "s/'password_here'/'$DBPassword'/g" wp-config.php
 sed -i "s/'localhost'/'$DBEndpoint'/g" wp-config.php
 
+#fix Permissions on the filesystem
 usermod -a -G apache ec2-user   
 chown -R ec2-user:apache /var/www
 chmod 2775 /var/www
 find /var/www -type d -exec chmod 2775 {} \;
 find /var/www -type f -exec chmod 0664 {} \;
 
+#update with the ELB DNS as its home
 cat >> /home/ec2-user/update_wp_ip.sh<< 'EOF'
 #!/bin/bash
 source <(php -r 'require("/var/www/html/wp-config.php"); echo("DB_NAME=".DB_NAME."; DB_USER=".DB_USER."; DB_PASSWORD=".DB_PASSWORD."; DB_HOST=".DB_HOST); ')
 SQL_COMMAND="mysql -u $DB_USER -h $DB_HOST -p$DB_PASSWORD $DB_NAME -e"
 OLD_URL=$(mysql -u $DB_USER -h $DB_HOST -p$DB_PASSWORD $DB_NAME -e 'select option_value from wp_options where option_id = 1;' | grep http)
 
-ALBDNSNAME=$(aws ssm get-parameters --region us-east-1 --names /A4L/Wordpress/ALBDNSNAME --query Parameters[0].Value)
+ALBDNSNAME=$(aws ssm get-parameters --region THE_REGION --names /A4L/Wordpress/ALBDNSNAME --query Parameters[0].Value)
 ALBDNSNAME=`echo $ALBDNSNAME | sed -e 's/^"//' -e 's/"$//'`
 
 $SQL_COMMAND "UPDATE wp_options SET option_value = replace(option_value, '$OLD_URL', 'http://$ALBDNSNAME') WHERE option_name = 'home' OR option_name = 'siteurl';"
@@ -77,6 +85,3 @@ EOF
 chmod 755 /home/ec2-user/update_wp_ip.sh
 echo "/home/ec2-user/update_wp_ip.sh" >> /etc/rc.local
 /home/ec2-user/update_wp_ip.sh
-
-
-
