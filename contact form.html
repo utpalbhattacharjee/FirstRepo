@@ -1,0 +1,36 @@
+<div class="signup-form">    
+<form id="fraea">    
+<h1>Contact</h1>    
+<p class="hint-text">Please enter your details and requirements</p>    
+<div class="form-group">        
+	<input class="form-control" id="franh" name="name" required placeholder="Name" style="width: 95%;" type="text" /> 
+</div>    
+<div class="form-group">        
+	<input class="form-control" id="frakf" name="phone" required placeholder="Phone" style="width: 95%;" type="number" />    
+</div>    
+<div class="form-group">        
+	<input class="form-control" id="fraoz" name="email" required placeholder="Email" style="width: 95%;" type="email" />   
+</div>        
+<div class="form-group">        
+	<input class="form-control" id="frahn" name="location" required placeholder="location" style="width: 95%;" type="text" />   
+</div>    
+<div class="form-group">        
+	<textarea class="form-control" id="fracx" name="address" required placeholder="Your Address" rows="5" style="width: 95%;"></textarea>    
+</div>    
+<div class="form-group">        
+	<textarea class="form-control" id="frajq" name="inquiry" required placeholder="Your Requirements" rows="8" style="width: 95%;"></textarea>    
+</div>    
+	<input id="chkbox" name="terms" required type="checkbox" /> I accept the <a href="" target="_blank">Terms and Conditions</a>    of freelanceage.com<br />    
+<div class="form-group">       
+	<button class="btn btn-success btn-lg btn-block" id="message" style="padding:10px;width:95%;background:#5cb85c;color:#fff;" type="submit">Submit</button> 
+</div>
+</form>
+</div>
+<div style="text-align:center;font-size:30px;">
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script>
+function jkdsf(type,message){$("#message").empty().append($("<div>").text("Submitted successfully")),document.getElementById("fraea").reset()}$((function(){$("form").submit((function(event){event.preventDefault();var Phone=$("#frakf").val(),data={Phone:Phone,Name:$("#franh").val(),Email:$("#fraoz").val(),Location:$("#frahn").val(),Address:$("#fracx").val(),requirement:$("#frajq").val()},frasub="https://REST_API_ID_OR_CUSTOM_API_DOMAIN/RESOURCE";$.ajax({type:"post",url:frasub+"?Phone="+Phone,crossDomain:"true",data:JSON.stringify(data),contentType:"application/json",dataType:"json"}).done((function(data){1==data.success?jkdsf("danger","Failed"):jkdsf("danger",data.message)})).fail((function(data){jkdsf("success","Submitted")}))}))}));
+</script>
