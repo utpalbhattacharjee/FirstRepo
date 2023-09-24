@@ -11,7 +11,7 @@ EFSFSID=`echo $EFSFSID | sed -e 's/^"//' -e 's/"$//'`
 DBEndpoint=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DB_Endpoint_URL --query Parameters[0].Value)
 DBEndpoint=`echo $DBEndpoint | sed -e 's/^"//' -e 's/"$//'`
 
-#Save RDS Initial database name to SSM Parameter Store and fetch it from that.
+#Save RDS Initial database name to SSM Parameter Store and fetch it from that...
 DBName=$(aws ssm get-parameters --region THE_REGION --names SSM_PARAMETER_DBName --query Parameters[0].Value)
 DBName=`echo $DBName | sed -e 's/^"//' -e 's/"$//'`
 
